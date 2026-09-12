@@ -1,0 +1,2 @@
+export type LeadStatus = "new" | "qualified" | "nurture" | "closed";
+export type Lead = { id: number; name: string; email: string; company: string; description: string; budget: string; timeline: string; source: string; score: number; category: string; priority: "High" | "Medium" | "Low"; summary: string; followUp: string; status: LeadStatus; automationTriggered: number; createdAt: string };

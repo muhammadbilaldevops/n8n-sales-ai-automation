@@ -1,0 +1,9 @@
+{
+  "name": "LeadFlow AI — Lead Intake",
+  "nodes": [
+    { "parameters": { "httpMethod": "POST", "path": "leadflow-intake", "responseMode": "onReceived", "options": {} }, "id": "webhook", "name": "LeadFlow Webhook", "type": "n8n-nodes-base.webhook", "typeVersion": 2, "position": [260, 300] },
+    { "parameters": { "assignments": { "assignments": [ { "id": "received", "name": "received", "value": "true", "type": "boolean" }, { "id": "note", "name": "note", "value": "LeadFlow received a qualified lead", "type": "string" } ] }, "options": {} }, "id": "annotate", "name": "Add automation metadata", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [500, 300] }
+  ],
+  "connections": { "LeadFlow Webhook": { "main": [[{ "node": "Add automation metadata", "type": "main", "index": 0 }]] } },
+  "pinData": {}, "settings": { "executionOrder": "v1" }, "active": false, "versionId": "leadflow-v1"
+}
