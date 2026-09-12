@@ -99,9 +99,34 @@ The response says `ollama-local` when the model is available or `fallback-rules`
 
 ## Vercel deployment later, without paid services
 
-The UI and API can deploy to Vercel's free tier, but its filesystem is ephemeral: do **not** use SQLite for production data. Before deploying, replace `lib/db.ts` with a hosted free Postgres adapter, such as Supabase or Neon, and put its connection string in Vercel environment variables. n8n itself must run somewhere publicly reachable; then change `N8N_WEBHOOK_URL` to its HTTPS production webhook.
+The UI and API can deploy to Vercel's free tier, but its filesystem is ephemeral: do **not** use SQLite for production data. This project already includes a Neon Postgres adapter; set `DATABASE_URL` in Vercel to use it. n8n itself must run somewhere publicly reachable; then change `N8N_WEBHOOK_URL` to its HTTPS production webhook.
 
 The local demo is fully free. Public persistence and always-on workflow hosting are separate deployment concerns, so the project avoids falsely claiming that localhost or a Vercel filesystem is production storage.
+
+## Make the public Vercel site save leads permanently for free
+
+The app has two database modes from one codebase:
+
+- No `DATABASE_URL`: local SQLite, ideal for learning locally.
+- `DATABASE_URL` set: Neon Postgres, ideal for Vercel and recruiter testing.
+
+1. Open your Neon project, choose **Connect**, and copy the complete pooled connection string beginning with `postgresql://`.
+2. In Vercel, open the LeadFlow project → **Settings → Environment Variables**.
+3. Add this private variable to **Production**, **Preview**, and **Development**:
+
+   ```env
+   DATABASE_URL=your-complete-neon-connection-string
+   ```
+
+4. Redeploy Vercel. The app creates the `leads` table automatically on its first request. `database/neon-schema.sql` is available if you prefer the Neon SQL Editor.
+5. Submit a lead on the public website and refresh the dashboard. It now persists in Neon.
+
+Keep the string private: never commit it to GitHub or put it into client-side code. To use the same cloud data locally, add it to `.env.local` and restart `npm run dev`; remove it to use the local SQLite database again.
+
+| Capability | Always online | Needs your PC running |
+| --- | --- | --- |
+| Website, dashboard, saved leads, fallback score | Vercel + Neon | No |
+| n8n and Ollama local-AI qualification | No | Yes |
 
 ## Suggested recruiter demo
 
