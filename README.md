@@ -61,6 +61,42 @@ Website form → POST /api/leads → SQLite (always saved)
                          n8n webhook (optional)
 ```
 
+## Milestone 2: free local AI qualification
+
+Milestone 2 optionally replaces the initial rule-only score with a real local Ollama model. It adds a full loop: **form → SQLite → n8n → Ollama → SQLite update → dashboard**. If Ollama is stopped or missing, the workflow automatically uses transparent fallback rules, so it never blocks a lead.
+
+1. Install [Ollama](https://ollama.com/download), then run:
+
+   ```powershell
+   ollama pull llama3.2:3b
+   ollama run llama3.2:3b
+   ```
+
+   Type `/bye` after the test. Ollama then serves its local API on port `11434`.
+
+2. Restart the Next.js app after copying the updated `.env.example` values to `.env.local`.
+
+3. In n8n, import `n8n/workflows/leadflow-intake.json`. This workflow uses `host.docker.internal`, which is the correct way for Docker-based n8n to reach Next.js running on Windows. Do not use `localhost` inside n8n.
+
+4. Set the website webhook URL in `.env.local`:
+
+   ```env
+   N8N_WEBHOOK_URL=http://localhost:5678/webhook/leadflow-intake
+   ```
+
+5. Start the workflow, submit a lead, and refresh the dashboard. The record is updated with the local AI summary, score, reason, recommended action, and `qualified` status.
+
+### Verify the local AI endpoint
+
+With the site running locally, send a test request:
+
+```powershell
+$body = @{ name = "Ali Khan"; email = "ali@example.com"; company = "Example Solutions"; description = "We need an AI CRM with automated follow-up."; budget = "5000 USD"; timeline = "Urgent" } | ConvertTo-Json
+Invoke-RestMethod -Uri http://localhost:3000/api/ai/qualify -Method Post -ContentType "application/json" -Body $body
+```
+
+The response says `ollama-local` when the model is available or `fallback-rules` when it is not.
+
 ## Vercel deployment later, without paid services
 
 The UI and API can deploy to Vercel's free tier, but its filesystem is ephemeral: do **not** use SQLite for production data. Before deploying, replace `lib/db.ts` with a hosted free Postgres adapter, such as Supabase or Neon, and put its connection string in Vercel environment variables. n8n itself must run somewhere publicly reachable; then change `N8N_WEBHOOK_URL` to its HTTPS production webhook.

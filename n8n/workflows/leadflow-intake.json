@@ -1,9 +1,12 @@
 {
-  "name": "LeadFlow AI — Lead Intake",
+  "name": "LeadFlow AI — Local Ollama Qualification",
   "nodes": [
-    { "parameters": { "httpMethod": "POST", "path": "leadflow-intake", "responseMode": "onReceived", "options": {} }, "id": "webhook", "name": "LeadFlow Webhook", "type": "n8n-nodes-base.webhook", "typeVersion": 2, "position": [260, 300] },
-    { "parameters": { "assignments": { "assignments": [ { "id": "received", "name": "received", "value": "true", "type": "boolean" }, { "id": "note", "name": "note", "value": "LeadFlow received a qualified lead", "type": "string" } ] }, "options": {} }, "id": "annotate", "name": "Add automation metadata", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [500, 300] }
+    { "parameters": { "httpMethod": "POST", "path": "leadflow-intake", "responseMode": "responseNode", "options": {} }, "id": "a1", "name": "LeadFlow Webhook", "type": "n8n-nodes-base.webhook", "typeVersion": 2, "position": [240, 300] },
+    { "parameters": { "method": "POST", "url": "http://host.docker.internal:3000/api/ai/qualify", "sendBody": true, "specifyBody": "json", "jsonBody": "={{ JSON.stringify($json) }}", "options": {} }, "id": "a2", "name": "Qualify with Local AI", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [480, 300] },
+    { "parameters": { "jsCode": "const input = $json;\nconst q = input.qualification || {};\nconst score = Math.max(0, Math.min(100, Number(q.score) || 0));\nconst priority = score >= 80 ? 'High' : score >= 55 ? 'Medium' : 'Low';\nreturn [{ json: { leadId: input.leadId, category: q.category || 'General', score, priority, summary: q.summary || 'No summary returned.', reason: q.reason || 'No reason returned.', recommendedAction: q.recommendedAction || 'Review manually.', source: input.source || 'fallback-rules' } }];" }, "id": "a3", "name": "Apply Priority Rules", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [720, 300] },
+    { "parameters": { "method": "PATCH", "url": "=http://host.docker.internal:3000/api/leads/{{ $json.leadId }}/qualification", "sendBody": true, "specifyBody": "json", "jsonBody": "={{ JSON.stringify({ category: $json.category, score: $json.score, summary: $json.summary, reason: $json.reason, recommendedAction: $json.recommendedAction, source: $json.source }) }}", "options": {} }, "id": "a4", "name": "Save Qualification", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [960, 300] },
+    { "parameters": { "respondWith": "json", "responseBody": "={{ JSON.stringify({ success: true, message: 'Lead saved and qualified successfully.', leadId: $json.leadId }) }}", "options": {} }, "id": "a5", "name": "Respond to Webhook", "type": "n8n-nodes-base.respondToWebhook", "typeVersion": 1.4, "position": [1200, 300] }
   ],
-  "connections": { "LeadFlow Webhook": { "main": [[{ "node": "Add automation metadata", "type": "main", "index": 0 }]] } },
-  "pinData": {}, "settings": { "executionOrder": "v1" }, "active": false, "versionId": "leadflow-v1"
+  "connections": { "LeadFlow Webhook": { "main": [[{ "node": "Qualify with Local AI", "type": "main", "index": 0 }]] }, "Qualify with Local AI": { "main": [[{ "node": "Apply Priority Rules", "type": "main", "index": 0 }]] }, "Apply Priority Rules": { "main": [[{ "node": "Save Qualification", "type": "main", "index": 0 }]] }, "Save Qualification": { "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]] } },
+  "pinData": {}, "settings": { "executionOrder": "v1" }, "active": false, "versionId": "leadflow-ollama-v2"
 }
